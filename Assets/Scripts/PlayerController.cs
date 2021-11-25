@@ -10,6 +10,7 @@ public class PlayerController : MonoBehaviour
     private Vector3 _lastMoveDir;
     public AudioSource dashSound;
     private float DASH_MAX;
+
     private void Update()
     {
         HandleDash();
@@ -19,7 +20,7 @@ public class PlayerController : MonoBehaviour
 
     private void Start()
     {
-        DASH_MAX = 2f;
+        DASH_MAX = 1f;
     }
 
     private void HandleMovement()
@@ -92,9 +93,10 @@ public class PlayerController : MonoBehaviour
     private void HandleDash()
     {
         dashCooldown -= Time.deltaTime;
-        
-        if (Input.GetKeyDown(KeyCode.Space))// && dashCooldown < 0)
+       
+        if (Input.GetKeyDown(KeyCode.Space) && dashCooldown < 0)
         {
+            
             if (TryMove(_lastMoveDir, dashDistance))
             {
                 // Dash correctly distance complete
