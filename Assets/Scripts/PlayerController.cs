@@ -6,13 +6,20 @@ using UnityEngine.EventSystems;
 
 public class PlayerController : MonoBehaviour
 {
-    public float speed, dashDistance;
+    public float speed, dashDistance, dashCooldown;
     private Vector3 _lastMoveDir;
     public AudioSource dashSound;
+    private float DASH_MAX;
     private void Update()
     {
-        HandleMovement();
         HandleDash();
+        HandleMovement();
+        
+    }
+
+    private void Start()
+    {
+        DASH_MAX = 2f;
     }
 
     private void HandleMovement()
@@ -84,13 +91,30 @@ public class PlayerController : MonoBehaviour
     
     private void HandleDash()
     {
-        if (Input.GetKeyDown(KeyCode.Space))
+        dashCooldown -= Time.deltaTime;
+        
+        if (Input.GetKeyDown(KeyCode.Space))// && dashCooldown < 0)
         {
+            if (TryMove(_lastMoveDir, dashDistance))
+            {
+                // Dash correctly distance complete
+            }
+            
+            else
+            {
+                // Dash stop on wall
+                var position = transform.position;
+                RaycastHit hit;
+                Ray ray = new Ray(position, _lastMoveDir);
+                Physics.Raycast(ray, out hit);
+                transform.position += _lastMoveDir * hit.distance;
+            }
+            
+            dashCooldown = DASH_MAX;
             if (!dashSound.isPlaying)
             {
                 dashSound.Play();
             }
-            transform.position += _lastMoveDir * dashDistance;
         }
     }
 }
