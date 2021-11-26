@@ -6,16 +6,17 @@ using UnityEngine.EventSystems;
 
 public class PlayerController : MonoBehaviour
 {
-    public float speed, dashDistance, dashCooldown;
+    public float speed, dashDistance, dashCooldown, rotationSpeed;
     private Vector3 _lastMoveDir;
-    public AudioSource dashSound;
+    public AudioSource dashSound, axeFrontSound, axeCircularSound;
     private float DASH_MAX;
+    public Animator axeAnimator;
 
     private void Update()
     {
         HandleDash();
         HandleMovement();
-        
+        HandleAttack();
     }
 
     private void Start()
@@ -36,6 +37,7 @@ public class PlayerController : MonoBehaviour
         if (Input.GetKey(KeyCode.S))
         {
             moveZ = -1f;
+
         }
 
         if (Input.GetKey(KeyCode.D))
@@ -81,6 +83,7 @@ public class PlayerController : MonoBehaviour
         {
             _lastMoveDir = moveDir;
             transform.position += moveDir * distance;
+            transform.forward = -moveDir;
             return true;
         }
         else
@@ -88,35 +91,74 @@ public class PlayerController : MonoBehaviour
             return false;
         }
     }
-    
+
+    private void HandleAttack()
+    {
+        bool circularAxe = Input.GetMouseButtonDown(1);
+        bool frontAxe = Input.GetMouseButtonDown(0);
+        axeAnimator.SetBool("FrontAttack", frontAxe);
+        axeAnimator.SetBool("CircularAttack", circularAxe);
+        
+        if (circularAxe)
+        {
+            if (!axeCircularSound.isPlaying && !axeFrontSound.isPlaying)
+            {
+                axeCircularSound.Play();
+            }
+        }
+
+        if (frontAxe)
+        {
+            if (!axeFrontSound.isPlaying && !axeCircularSound.isPlaying)
+            {
+                axeFrontSound.Play();
+            }  
+        }
+
+    }
     
     private void HandleDash()
     {
         dashCooldown -= Time.deltaTime;
-       
-        if (Input.GetKeyDown(KeyCode.Space) && dashCooldown < 0)
+        ParticleSystem psTrails = GameObject.Find("ParticleTrails").GetComponent<ParticleSystem>();
+        ParticleSystem.EmissionModule emTrails = psTrails.emission;
+
+        if (dashCooldown < 0)
         {
-            
-            if (TryMove(_lastMoveDir, dashDistance))
+
+            if (Input.GetKeyDown(KeyCode.Space))
             {
-                // Dash correctly distance complete
-            }
+                psTrails.Play();
+                emTrails.enabled = true;
+                
+                if (TryMove(_lastMoveDir, dashDistance))
+                {
+                    // Dash correctly distance complete
+                }
             
-            else
-            {
-                // Dash stop on wall
-                var position = transform.position;
-                RaycastHit hit;
-                Ray ray = new Ray(position, _lastMoveDir);
-                Physics.Raycast(ray, out hit);
-                transform.position += _lastMoveDir * hit.distance;
-            }
+                else
+                {
+                    // Dash stop on wall
+                    var position = transform.position;
+                    RaycastHit hit;
+                    Ray ray = new Ray(position, _lastMoveDir);
+                    Physics.Raycast(ray, out hit);
+                    transform.position += _lastMoveDir * hit.distance;
+                }
             
-            dashCooldown = DASH_MAX;
-            if (!dashSound.isPlaying)
-            {
-                dashSound.Play();
+                dashCooldown = DASH_MAX;
+                if (!dashSound.isPlaying)
+                {
+                    dashSound.Play();
+                }
+                
+               
             }
+        }
+        
+        if (dashCooldown > 0)
+        {
+            emTrails.enabled = false;
         }
     }
 }
