@@ -12,6 +12,11 @@ public class PlayerController : MonoBehaviour
     private float DASH_MAX;
     public Animator axeAnimator;
 
+    public Transform attackPointCircle, attackPointForward;
+    public float attackRangeCircular,attackRangeForward, forcePushEnemies;
+    public LayerMask enemyLayers;
+
+
     private void Update()
     {
         HandleDash();
@@ -83,7 +88,11 @@ public class PlayerController : MonoBehaviour
         {
             _lastMoveDir = moveDir;
             transform.position += moveDir * distance;
-            transform.forward = -moveDir;
+            //transform.forward = -moveDir;
+
+            Quaternion toRotation = Quaternion.LookRotation(-moveDir);
+            transform.rotation =
+                Quaternion.RotateTowards(transform.rotation, toRotation, rotationSpeed * Time.deltaTime);
             return true;
         }
         else
@@ -101,36 +110,55 @@ public class PlayerController : MonoBehaviour
         
         if (circularAxe)
         {
+            // Sound
             if (!axeCircularSound.isPlaying && !axeFrontSound.isPlaying)
             {
                 axeCircularSound.Play();
+            }
+            // Force to move enemies
+            Collider[] hitEnemies = Physics.OverlapSphere(attackPointCircle.position, attackRangeCircular, enemyLayers);
+            foreach (var enemy in hitEnemies)
+            {
+                Debug.Log("We hit C" + enemy.name);
+                enemy.attachedRigidbody.AddForce(-enemy.transform.forward  * forcePushEnemies);
             }
         }
 
         if (frontAxe)
         {
+            // Sound
             if (!axeFrontSound.isPlaying && !axeCircularSound.isPlaying)
             {
                 axeFrontSound.Play();
-            }  
+            }
+            // Force to move enemies
+            Collider[] hitEnemies = Physics.OverlapBox(attackPointForward.position,
+                new Vector3(attackRangeForward / 2, attackRangeForward / 2,attackRangeForward/2), new Quaternion(),enemyLayers);
+            foreach (var enemy in hitEnemies)
+            {
+                Debug.Log("We hit F" + enemy.name);
+                enemy.attachedRigidbody.AddForce(-enemy.transform.forward  * forcePushEnemies);
+            }
         }
-
     }
-    
+
+    private void OnDrawGizmosSelected()
+    {
+        if (attackPointCircle == null)
+            return;
+        Gizmos.DrawWireSphere(attackPointCircle.position, attackRangeCircular);
+        Gizmos.DrawCube(attackPointForward.position,new Vector3(attackRangeForward,attackRangeForward,attackRangeForward) );
+    }
+
+
     private void HandleDash()
     {
         dashCooldown -= Time.deltaTime;
-        ParticleSystem psTrails = GameObject.Find("ParticleTrails").GetComponent<ParticleSystem>();
-        ParticleSystem.EmissionModule emTrails = psTrails.emission;
-
         if (dashCooldown < 0)
         {
 
             if (Input.GetKeyDown(KeyCode.Space))
             {
-                psTrails.Play();
-                emTrails.enabled = true;
-                
                 if (TryMove(_lastMoveDir, dashDistance))
                 {
                     // Dash correctly distance complete
@@ -158,7 +186,6 @@ public class PlayerController : MonoBehaviour
         
         if (dashCooldown > 0)
         {
-            emTrails.enabled = false;
         }
     }
 }
